@@ -1,43 +1,688 @@
-import './style.css';
-import './app.css';
+(function(){
+"use strict";
 
-import logo from './assets/images/logo-universal.png';
-import {Greet} from '../wailsjs/go/main/App';
+// ── State ──────────────────────────────────────────────
+var files = [];
+var active = -1;
+var view = 'split';
+var srchMatches = [], srchIdx = 0;
+var dragN = 0;
 
-document.querySelector('#app').innerHTML = `
-    <img id="logo" class="logo">
-      <div class="result" id="result">Please enter your name below 👇</div>
-      <div class="input-box" id="input">
-        <input class="input" id="name" type="text" autocomplete="off" />
-        <button class="btn" onclick="greet()">Greet</button>
-      </div>
-    </div>
-`;
-document.getElementById('logo').src = logo;
+// ── DOM refs ───────────────────────────────────────────
+var ED   = document.getElementById('ed');
+var LN   = document.getElementById('ln');
+var PW   = document.getElementById('pw');
+var PV   = document.getElementById('pv');
+var EW   = document.getElementById('ew');
+var RZ   = document.getElementById('rz');
+var EMP  = document.getElementById('emp');
+var FTB  = document.getElementById('ftb');
+var SRCH = document.getElementById('srch');
+var SI   = document.getElementById('si');
+var SC   = document.getElementById('sc');
+var FLIST= document.getElementById('flist');
+var FNAME= document.getElementById('fname');
+var DIRTY= document.getElementById('dirty');
+var TST  = document.getElementById('tst');
+var FINP = document.getElementById('file-inp');
+var DOV  = document.getElementById('dov');
 
-let nameElement = document.getElementById("name");
-nameElement.focus();
-let resultElement = document.getElementById("result");
+// ── Open files ─────────────────────────────────────────
+function openPicker(){ FINP.click(); }
+FINP.addEventListener('change', function(e){
+  var list = Array.from(e.target.files);
+  list.forEach(function(f){ readFile(f); });
+  e.target.value = '';
+});
 
-// Setup the greet function
-window.greet = function () {
-    // Get name
-    let name = nameElement.value;
-
-    // Check if the input is empty
-    if (name === "") return;
-
-    // Call App.Greet(name)
-    try {
-        Greet(name)
-            .then((result) => {
-                // Update result with data back from App.Greet()
-                resultElement.innerText = result;
-            })
-            .catch((err) => {
-                console.error(err);
-            });
-    } catch (err) {
-        console.error(err);
+function readFile(f){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var content = e.target.result;
+    var idx = files.findIndex(function(x){ return x.name === f.name; });
+    if(idx >= 0){
+      files[idx].content = content;
+      files[idx].dirty = false;
+      setActive(idx);
+    } else {
+      files.push({name: f.name, content: content, dirty: false});
+      setActive(files.length - 1);
     }
-};
+    renderSidebar();
+    toast('Opened ' + f.name);
+  };
+  reader.readAsText(f);
+}
+
+// ── New file ───────────────────────────────────────────
+function newFile(){
+  var name = 'Untitled-' + (files.length + 1) + '.md';
+  var content = '# ' + name.replace('.md','') + '\n\nStart writing here…\n';
+  files.push({name: name, content: content, dirty: true});
+  setActive(files.length - 1);
+  renderSidebar();
+  toast('Created ' + name);
+}
+
+// ── Close file ─────────────────────────────────────────
+function closeFile(idx){
+  if(files[idx].dirty && !confirm('Unsaved changes in "' + files[idx].name + '". Close anyway?')) return;
+  files.splice(idx, 1);
+  if(files.length === 0){ active = -1; showEmpty(); }
+  else setActive(Math.min(idx, files.length - 1));
+  renderSidebar();
+}
+
+// ── Save file ──────────────────────────────────────────
+function saveFile(){
+  if(active < 0) return;
+  var f = files[active];
+  var blob = new Blob([f.content], {type: 'text/markdown;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = f.name; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  f.dirty = false;
+  updateTitle();
+  renderSidebar();
+  toast('Saved ' + f.name);
+}
+
+// ── Set active file ────────────────────────────────────
+function setActive(idx){
+  active = idx;
+  ED.value = files[idx].content;
+  renderSidebar();
+  updateTitle();
+  updateLineNums();
+  updateStatus();
+  renderPreview();
+  showEditorArea();
+  ED.focus();
+}
+
+function showEmpty(){
+  EMP.style.display = 'flex';
+  EW.style.display = 'none';
+  PW.style.display = 'none';
+  RZ.style.display = 'none';
+  FNAME.textContent = 'No file open';
+  DIRTY.style.display = 'none';
+  FTB.style.opacity = '.35';
+  FTB.style.pointerEvents = 'none';
+  document.getElementById('sb-mode').textContent = 'No file';
+}
+
+function showEditorArea(){
+  EMP.style.display = 'none';
+  FTB.style.opacity = '';
+  FTB.style.pointerEvents = '';
+  applyView();
+}
+
+// ── Sidebar ────────────────────────────────────────────
+function renderSidebar(){
+  FLIST.innerHTML = '';
+  files.forEach(function(f, i){
+    var div = document.createElement('div');
+    div.className = 'fi' + (i === active ? ' act' : '');
+
+    var icon = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    icon.setAttribute('width','12'); icon.setAttribute('height','12');
+    icon.setAttribute('fill','none'); icon.setAttribute('viewBox','0 0 24 24');
+    icon.setAttribute('stroke','currentColor'); icon.setAttribute('stroke-width','1.5');
+    icon.style.flexShrink = '0'; icon.style.opacity = '.6';
+    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>';
+
+    var nm = document.createElement('span');
+    nm.className = 'fn';
+    nm.textContent = f.name + (f.dirty ? ' ●' : '');
+
+    var cl = document.createElement('button');
+    cl.className = 'fx';
+    cl.title = 'Close';
+    cl.textContent = '✕';
+    cl.setAttribute('data-idx', i);
+
+    div.appendChild(icon);
+    div.appendChild(nm);
+    div.appendChild(cl);
+    div.setAttribute('data-idx', i);
+    FLIST.appendChild(div);
+  });
+
+  // attach events after render
+  FLIST.querySelectorAll('.fi').forEach(function(el){
+    var idx = parseInt(el.getAttribute('data-idx'));
+    el.addEventListener('click', function(e){
+      if(e.target.classList.contains('fx')) return;
+      setActive(idx);
+    });
+  });
+  FLIST.querySelectorAll('.fx').forEach(function(btn){
+    var idx = parseInt(btn.getAttribute('data-idx'));
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      closeFile(idx);
+    });
+  });
+}
+
+function updateTitle(){
+  if(active < 0) return;
+  var f = files[active];
+  FNAME.textContent = f.name;
+  DIRTY.style.display = f.dirty ? 'inline' : 'none';
+}
+
+// ── Editor events ──────────────────────────────────────
+ED.addEventListener('input', function(){
+  if(active < 0) return;
+  files[active].content = ED.value;
+  files[active].dirty = true;
+  updateTitle();
+  renderSidebar();
+  updateLineNums();
+  updateStatus();
+  renderPreview();
+});
+
+ED.addEventListener('keydown', function(e){
+  // Tab
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    var s = ED.selectionStart, en = ED.selectionEnd;
+    ED.setRangeText('  ', s, en, 'end');
+    ED.dispatchEvent(new Event('input'));
+    return;
+  }
+  // Ctrl+S
+  if((e.ctrlKey||e.metaKey) && e.key === 's'){ e.preventDefault(); saveFile(); return; }
+  // Ctrl+B
+  if((e.ctrlKey||e.metaKey) && e.key === 'b'){ e.preventDefault(); fmt('bold'); return; }
+  // Ctrl+I
+  if((e.ctrlKey||e.metaKey) && e.key === 'i'){ e.preventDefault(); fmt('italic'); return; }
+  // Ctrl+F
+  if((e.ctrlKey||e.metaKey) && e.key === 'f'){ e.preventDefault(); toggleSearch(); return; }
+
+  // Smart Enter
+  if(e.key === 'Enter'){
+    var s = ED.selectionStart;
+    var val = ED.value;
+    var lineStart = val.lastIndexOf('\n', s-1) + 1;
+    var line = val.slice(lineStart, s);
+    var task  = line.match(/^(\s*)([-*+] \[[ x]\] )(.*)/);
+    var ul    = line.match(/^(\s*)([-*+] )(.*)/);
+    var ol    = line.match(/^(\s*)(\d+)\. (.*)/);
+    if(task){
+      e.preventDefault();
+      if(task[3] === ''){ ED.value = val.slice(0,lineStart) + val.slice(s); ED.selectionStart = ED.selectionEnd = lineStart; }
+      else { ED.setRangeText('\n' + task[1] + '- [ ] ', s, s, 'end'); }
+      ED.dispatchEvent(new Event('input')); return;
+    }
+    if(ul && !task){
+      e.preventDefault();
+      if(ul[3] === ''){ ED.value = val.slice(0,lineStart) + val.slice(s); ED.selectionStart = ED.selectionEnd = lineStart; }
+      else { ED.setRangeText('\n' + ul[1] + ul[2], s, s, 'end'); }
+      ED.dispatchEvent(new Event('input')); return;
+    }
+    if(ol){
+      e.preventDefault();
+      if(ol[3] === ''){ ED.value = val.slice(0,lineStart) + val.slice(s); ED.selectionStart = ED.selectionEnd = lineStart; }
+      else { ED.setRangeText('\n' + ol[1] + (parseInt(ol[2])+1) + '. ', s, s, 'end'); }
+      ED.dispatchEvent(new Event('input')); return;
+    }
+  }
+});
+
+ED.addEventListener('scroll', function(){
+  if(view !== 'split') return;
+  var ratio = ED.scrollTop / Math.max(1, ED.scrollHeight - ED.clientHeight);
+  PW.scrollTop = ratio * (PW.scrollHeight - PW.clientHeight);
+});
+
+ED.addEventListener('keyup', updateStatus);
+ED.addEventListener('click', updateStatus);
+
+function updateLineNums(){
+  var n = ED.value.split('\n').length;
+  var s = '';
+  for(var i=1;i<=n;i++) s += i + '\n';
+  LN.textContent = s;
+}
+
+function updateStatus(){
+  if(active < 0) return;
+  var val = ED.value;
+  var lines = val.split('\n').length;
+  var words = val.trim() === '' ? 0 : val.trim().split(/\s+/).length;
+  var pos = ED.selectionStart;
+  var before = val.slice(0, pos);
+  var ln = before.split('\n').length;
+  var col = pos - before.lastIndexOf('\n');
+  document.getElementById('sb-mode').textContent = files[active].name;
+  document.getElementById('sb-w').textContent = words + ' words';
+  document.getElementById('sb-l').textContent = lines + ' lines';
+  document.getElementById('sb-p').textContent = 'Ln ' + ln + ', Col ' + col;
+}
+
+// ── Format commands ────────────────────────────────────
+function fmt(type){
+  if(active < 0) return;
+  var s = ED.selectionStart, en = ED.selectionEnd;
+  var sel = ED.value.slice(s, en);
+
+  switch(type){
+    case 'bold':
+      ED.setRangeText('**'+(sel||'bold text')+'**', s, en, 'select');
+      break;
+    case 'italic':
+      ED.setRangeText('_'+(sel||'italic text')+'_', s, en, 'select');
+      break;
+    case 'strike':
+      ED.setRangeText('~~'+(sel||'strikethrough')+'~~', s, en, 'select');
+      break;
+    case 'code':
+      ED.setRangeText('`'+(sel||'code')+'`', s, en, 'select');
+      break;
+    case 'link':
+      var url = prompt('Enter URL:', 'https://');
+      if(!url) return;
+      ED.setRangeText('['+(sel||'link text')+']('+ url +')', s, en, 'select');
+      break;
+    case 'h1': linePrefix('# '); return;
+    case 'h2': linePrefix('## '); return;
+    case 'h3': linePrefix('### '); return;
+    case 'ul':   linePrefix('- '); return;
+    case 'ol':   linePrefix('1. '); return;
+    case 'task': linePrefix('- [ ] '); return;
+    case 'quote': linePrefix('> '); return;
+    case 'hr':
+      ED.setRangeText('\n\n---\n\n', s, en, 'end');
+      break;
+    case 'codeblock':
+      var lang = prompt('Language (optional, e.g. js, python):', '') || '';
+      ED.setRangeText('\n```' + lang + '\n' + (sel || 'code here') + '\n```\n', s, en, 'end');
+      break;
+    case 'table':
+      var rows = parseInt(prompt('Number of rows (including header):', '3') || '3');
+      var cols = parseInt(prompt('Number of columns:', '3') || '3');
+      var t = '\n';
+      var headers = [];
+      for(var c=1;c<=cols;c++) headers.push('Col ' + c);
+      t += '| ' + headers.join(' | ') + ' |\n';
+      var seps = [];
+      for(var c=0;c<cols;c++) seps.push('---');
+      t += '| ' + seps.join(' | ') + ' |\n';
+      for(var r=1;r<rows;r++){
+        var cells = [];
+        for(var c=0;c<cols;c++) cells.push('   ');
+        t += '| ' + cells.join(' | ') + ' |\n';
+      }
+      ED.setRangeText(t, s, en, 'end');
+      break;
+    default: return;
+  }
+  ED.dispatchEvent(new Event('input'));
+}
+
+function linePrefix(prefix){
+  var s = ED.selectionStart, en = ED.selectionEnd;
+  var val = ED.value;
+  var lineStart = val.lastIndexOf('\n', s-1) + 1;
+  var lineEnd = val.indexOf('\n', en);
+  if(lineEnd === -1) lineEnd = val.length;
+  var block = val.slice(lineStart, lineEnd);
+  var newBlock = block.split('\n').map(function(l){
+    return l.startsWith(prefix) ? l.slice(prefix.length) : prefix + l;
+  }).join('\n');
+  ED.setRangeText(newBlock, lineStart, lineEnd, 'preserve');
+  ED.dispatchEvent(new Event('input'));
+}
+
+// ── View modes ─────────────────────────────────────────
+function setView(v){
+  view = v;
+  ['edit','split','preview'].forEach(function(m){
+    document.getElementById('vt-'+m).classList.toggle('on', m === v);
+  });
+  if(active >= 0){ applyView(); renderPreview(); }
+}
+
+function applyView(){
+  if(view === 'edit'){
+    EW.style.display = 'flex'; EW.style.flex = '1';
+    PW.style.display = 'none'; RZ.style.display = 'none';
+  } else if(view === 'preview'){
+    EW.style.display = 'none';
+    PW.style.display = 'block'; PW.style.flex = '1'; PW.style.borderLeft = 'none';
+    RZ.style.display = 'none';
+  } else {
+    EW.style.display = 'flex'; EW.style.flex = '1';
+    PW.style.display = 'block'; PW.style.flex = '1'; PW.style.borderLeft = '1px solid var(--border)';
+    RZ.style.display = 'block';
+  }
+}
+
+// ── Resizer ────────────────────────────────────────────
+var rDragging = false, rX0 = 0, rW0 = 0;
+RZ.addEventListener('mousedown', function(e){
+  rDragging = true; rX0 = e.clientX; rW0 = EW.offsetWidth;
+  RZ.classList.add('on');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+document.addEventListener('mousemove', function(e){
+  if(!rDragging) return;
+  var total = document.getElementById('ca').offsetWidth - 4;
+  var nw = Math.max(180, Math.min(total - 180, rW0 + (e.clientX - rX0)));
+  EW.style.flex = 'none'; EW.style.width = nw + 'px';
+  PW.style.flex = '1';
+});
+document.addEventListener('mouseup', function(){
+  if(!rDragging) return;
+  rDragging = false; RZ.classList.remove('on');
+  document.body.style.cursor = ''; document.body.style.userSelect = '';
+});
+
+// ── Search ─────────────────────────────────────────────
+function toggleSearch(){
+  if(SRCH.classList.contains('on')){
+    SRCH.classList.remove('on'); SI.value = ''; SC.textContent = ''; srchMatches = []; ED.focus();
+  } else {
+    SRCH.classList.add('on'); SI.focus();
+  }
+}
+SI.addEventListener('input', runSearch);
+SI.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ toggleSearch(); return; }
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    if(!srchMatches.length) return;
+    srchIdx = (srchIdx + (e.shiftKey ? srchMatches.length-1 : 1)) % srchMatches.length;
+    SC.textContent = (srchIdx+1) + ' / ' + srchMatches.length;
+    jumpMatch(srchIdx);
+  }
+});
+document.getElementById('srch-close').addEventListener('click', toggleSearch);
+
+function runSearch(){
+  var q = SI.value; srchMatches = [];
+  if(!q){ SC.textContent = ''; return; }
+  var text = ED.value.toLowerCase(), ql = q.toLowerCase(), i = 0;
+  while(true){ var idx = text.indexOf(ql, i); if(idx<0) break; srchMatches.push(idx); i = idx+1; }
+  srchIdx = 0;
+  SC.textContent = srchMatches.length ? '1 / ' + srchMatches.length : 'No results';
+  if(srchMatches.length) jumpMatch(0);
+}
+function jumpMatch(i){
+  var q = SI.value, pos = srchMatches[i];
+  ED.focus(); ED.setSelectionRange(pos, pos + q.length);
+  var lh = 22, line = ED.value.slice(0, pos).split('\n').length;
+  ED.scrollTop = Math.max(0, (line-3)*lh);
+}
+
+// ── Markdown renderer ──────────────────────────────────
+function renderPreview(){
+  if(view === 'edit') return;
+  var md = active >= 0 ? files[active].content : '';
+  PV.innerHTML = mdToHtml(md);
+  // wire checkboxes
+  var cbs = PV.querySelectorAll('input[type=checkbox]');
+  cbs.forEach(function(cb, i){
+    cb.addEventListener('change', function(){
+      var count = 0;
+      var src = ED.value.replace(/- \[([ x])\]/g, function(m, c){
+        if(count++ === i) return '- [' + (cb.checked ? 'x' : ' ') + ']';
+        return m;
+      });
+      ED.value = src;
+      files[active].content = src;
+      files[active].dirty = true;
+      updateTitle(); renderSidebar();
+    });
+  });
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function mdToHtml(md){
+  // protect fenced code blocks
+  var cbs = [];
+  md = md.replace(/```(\w*)\n?([\s\S]*?)```/g, function(_,lang,code){
+    cbs.push({lang:lang, code:code});
+    return '\x00CB'+(cbs.length-1)+'\x00';
+  });
+  // protect inline code
+  var ics = [];
+  md = md.replace(/`([^`\n]+)`/g, function(_,code){
+    ics.push(code); return '\x00IC'+(ics.length-1)+'\x00';
+  });
+
+  // tables
+  md = md.replace(/^(\|.+\|\n)(\|[-: |]+\|\n)((?:\|.+\|[ \t]*\n?)*)/gm, function(_,hdr,sep,body){
+    function prow(r){ return r.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();}); }
+    var aligns = prow(sep).map(function(c){ return c.startsWith(':')&&c.endsWith(':')? 'center': c.endsWith(':')? 'right': 'left'; });
+    var ths = prow(hdr).map(function(c,i){ return '<th style="text-align:'+aligns[i]+'">' + inl(esc(c)) + '</th>'; }).join('');
+    var rows = body.trim().split('\n').filter(function(r){return r.trim();}).map(function(r){
+      return '<tr>'+prow(r).map(function(c,i){ return '<td style="text-align:'+aligns[i]+'">' + inl(esc(c)) + '</td>'; }).join('')+'</tr>';
+    }).join('');
+    return '<table><thead><tr>'+ths+'</tr></thead><tbody>'+rows+'</tbody></table>\n';
+  });
+
+  // headings
+  md = md.replace(/^(#{1,6}) (.+)$/gm, function(_,h,t){ return '<h'+h.length+'>'+inl(esc(t))+'</h'+h.length+'>'; });
+  // hr
+  md = md.replace(/^[-*_]{3,}$/gm, '<hr>');
+  // blockquote
+  md = md.replace(/^(> ?.+(\n> ?.+)*)/gm, function(_,block){
+    var inner = block.replace(/^> ?/gm,'');
+    return '<blockquote>'+inl(esc(inner))+'</blockquote>';
+  });
+
+  // lists & paragraphs
+  var lines = md.split('\n');
+  var out = '';
+  var inUL = false, inOL = false;
+
+  for(var i=0;i<lines.length;i++){
+    var line = lines[i];
+    var cbm = line.match(/\x00CB(\d+)\x00/);
+    if(cbm){
+      if(inUL){out+='</ul>';inUL=false;} if(inOL){out+='</ol>';inOL=false;}
+      var cb = cbs[parseInt(cbm[1])];
+      out += '<pre><code>' + hlCode(esc(cb.code), cb.lang) + '</code></pre>';
+      continue;
+    }
+    var task = line.match(/^(\s*)([-*+]) \[([ x])\] (.+)/);
+    var ul   = !task && line.match(/^(\s*)([-*+]) (.+)/);
+    var ol   = line.match(/^(\s*)(\d+)\. (.+)/);
+    if(task){
+      if(inOL){out+='</ol>';inOL=false;}
+      if(!inUL){out+='<ul style="list-style:none;padding-left:1.5em">';inUL=true;}
+      out += '<li class="tli"><input type="checkbox"'+(task[3]==='x'?' checked':'')+' readonly> '+inl(esc(task[4]))+'</li>';
+    } else if(ul){
+      if(inOL){out+='</ol>';inOL=false;}
+      if(!inUL){out+='<ul>';inUL=true;}
+      out += '<li>'+inl(esc(ul[3]))+'</li>';
+    } else if(ol){
+      if(inUL){out+='</ul>';inUL=false;}
+      if(!inOL){out+='<ol>';inOL=true;}
+      out += '<li>'+inl(esc(ol[3]))+'</li>';
+    } else {
+      if(inUL){out+='</ul>';inUL=false;} if(inOL){out+='</ol>';inOL=false;}
+      if(line.trim()==='') out += '<br>';
+      else if(line.match(/^<[a-z]/i)) out += line;
+      else out += '<p>'+inl(esc(line))+'</p>';
+    }
+  }
+  if(inUL) out+='</ul>'; if(inOL) out+='</ol>';
+
+  // restore inline code
+  out = out.replace(/\x00IC(\d+)\x00/g, function(_,i){ return '<code>'+esc(ics[parseInt(i)])+'</code>'; });
+  return out;
+}
+
+function inl(s){
+  s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  s = s.replace(/__(.+?)__/g,'<strong>$1</strong>');
+  s = s.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
+  s = s.replace(/_([^_\n]+)_/g,'<em>$1</em>');
+  s = s.replace(/~~(.+?)~~/g,'<del>$1</del>');
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1">');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/\x00IC(\d+)\x00/g, function(_,i){ return '<code>'+i+'</code>'; });
+  return s;
+}
+
+function hlCode(code, lang){
+  if(!lang||lang==='text') return code;
+  var kws = {
+    js:  /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|class|new|this|typeof|instanceof|import|export|from|default|async|await|null|undefined|true|false|try|catch|finally|throw|of|in|delete|void)\b/g,
+    ts:  /\b(const|let|var|function|return|if|else|for|while|class|new|this|typeof|instanceof|import|export|from|default|async|await|null|undefined|true|false|type|interface|enum|extends|implements|readonly|string|number|boolean|any|void)\b/g,
+    py:  /\b(def|class|return|if|elif|else|for|while|import|from|as|with|try|except|finally|raise|pass|break|continue|and|or|not|in|is|lambda|yield|True|False|None|self|print)\b/g,
+    sh:  /\b(echo|cd|ls|mkdir|rm|cp|mv|grep|cat|sed|awk|curl|wget|sudo|chmod|export|source|if|then|fi|else|for|do|done|while)\b/g,
+    bash:/\b(echo|cd|ls|mkdir|rm|cp|mv|grep|cat|sed|awk|curl|wget|sudo|chmod|export|source|if|then|fi|else|for|do|done|while)\b/g,
+    css: /(\b(color|background|margin|padding|font|border|display|position|width|height|flex|grid|transform|transition|animation|content|overflow|z-index|opacity)\b)/g,
+  };
+  var kw = kws[lang] || kws['js'];
+  // comments first
+  code = code.replace(/(\/\/[^\n]*)|(#[^\n]*)/g, function(m){ return '<span class="cc">'+m+'</span>'; });
+  // strings
+  code = code.replace(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g, function(m){ return '<span class="cs">'+m+'</span>'; });
+  // numbers
+  code = code.replace(/\b(\d+\.?\d*)\b/g, '<span class="cn">$1</span>');
+  // keywords
+  if(kw) code = code.replace(kw, '<span class="ckw">$1</span>');
+  // function names
+  code = code.replace(/\b([a-zA-Z_]\w*)\s*(?=\()/g, '<span class="cf">$1</span>');
+  return code;
+}
+
+// ── Toast ──────────────────────────────────────────────
+var tTimer;
+function toast(msg){
+  TST.textContent = msg;
+  TST.classList.add('on');
+  clearTimeout(tTimer);
+  tTimer = setTimeout(function(){ TST.classList.remove('on'); }, 2000);
+}
+
+// ── Drag & drop ────────────────────────────────────────
+document.addEventListener('dragenter', function(e){
+  if(e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')){
+    dragN++; DOV.classList.add('on');
+  }
+});
+document.addEventListener('dragleave', function(){
+  dragN = Math.max(0, dragN-1);
+  if(dragN === 0) DOV.classList.remove('on');
+});
+document.addEventListener('dragover', function(e){ e.preventDefault(); });
+document.addEventListener('drop', function(e){
+  e.preventDefault(); dragN = 0; DOV.classList.remove('on');
+  var dropped = Array.from(e.dataTransfer.files).filter(function(f){ return /\.(md|markdown|txt|mdx)$/i.test(f.name); });
+  if(!dropped.length){ toast('Please drop .md or .markdown files'); return; }
+  dropped.forEach(function(f){ readFile(f); });
+});
+
+// ── Button wiring ──────────────────────────────────────
+document.getElementById('btn-open').addEventListener('click', openPicker);
+document.getElementById('btn-save').addEventListener('click', saveFile);
+document.getElementById('btn-new').addEventListener('click', newFile);
+document.getElementById('sb-open').addEventListener('click', openPicker);
+document.getElementById('emp-open').addEventListener('click', openPicker);
+
+document.getElementById('vt-edit').addEventListener('click',    function(){ setView('edit'); });
+document.getElementById('vt-split').addEventListener('click',   function(){ setView('split'); });
+document.getElementById('vt-preview').addEventListener('click', function(){ setView('preview'); });
+
+document.getElementById('f-bold').addEventListener('click',   function(){ fmt('bold'); });
+document.getElementById('f-italic').addEventListener('click', function(){ fmt('italic'); });
+document.getElementById('f-strike').addEventListener('click', function(){ fmt('strike'); });
+document.getElementById('f-code').addEventListener('click',   function(){ fmt('code'); });
+document.getElementById('f-link').addEventListener('click',   function(){ fmt('link'); });
+document.getElementById('f-h1').addEventListener('click',     function(){ fmt('h1'); });
+document.getElementById('f-h2').addEventListener('click',     function(){ fmt('h2'); });
+document.getElementById('f-h3').addEventListener('click',     function(){ fmt('h3'); });
+document.getElementById('f-ul').addEventListener('click',     function(){ fmt('ul'); });
+document.getElementById('f-ol').addEventListener('click',     function(){ fmt('ol'); });
+document.getElementById('f-task').addEventListener('click',   function(){ fmt('task'); });
+document.getElementById('f-quote').addEventListener('click',  function(){ fmt('quote'); });
+document.getElementById('f-cb').addEventListener('click',     function(){ fmt('codeblock'); });
+document.getElementById('f-hr').addEventListener('click',     function(){ fmt('hr'); });
+document.getElementById('f-table').addEventListener('click',  function(){ fmt('table'); });
+document.getElementById('f-find').addEventListener('click',   function(){ toggleSearch(); });
+
+// ── Global shortcuts ───────────────────────────────────
+document.addEventListener('keydown', function(e){
+  if((e.ctrlKey||e.metaKey) && e.key === 'n'){ e.preventDefault(); newFile(); }
+  if((e.ctrlKey||e.metaKey) && e.key === 'o'){ e.preventDefault(); openPicker(); }
+  if((e.ctrlKey||e.metaKey) && e.key === '\\' && active >= 0){
+    e.preventDefault();
+    setView(view === 'split' ? 'edit' : view === 'edit' ? 'preview' : 'split');
+  }
+});
+
+// ── Init ───────────────────────────────────────────────
+showEmpty();
+FTB.style.opacity = '.35';
+FTB.style.pointerEvents = 'none';
+
+var welcome = [
+'# Welcome to MD Editor',
+'',
+'A **fast**, distraction-free Markdown editor — runs entirely in your browser.',
+'No server. No account. Your files never leave your device.',
+'',
+'## Quick start',
+'',
+'1. Click **Open** or drag `.md` files onto this window',
+'2. Edit using the toolbar above or keyboard shortcuts',
+'3. Switch between **Edit / Split / Preview** modes (top-right)',
+'4. **Save** downloads the file back to your computer',
+'',
+'## Keyboard shortcuts',
+'',
+'| Action | Shortcut |',
+'| --- | --- |',
+'| New file | `Ctrl + N` |',
+'| Open file | `Ctrl + O` |',
+'| Save | `Ctrl + S` |',
+'| Bold | `Ctrl + B` |',
+'| Italic | `Ctrl + I` |',
+'| Find | `Ctrl + F` |',
+'| Cycle view | `Ctrl + \\` |',
+'',
+'## Features',
+'',
+'- **Bold**, _italic_, ~~strikethrough~~',
+'- `inline code` and fenced code blocks with syntax highlighting',
+'- Tables, blockquotes, task lists',
+'- Smart lists — press Enter to continue, empty line to stop',
+'- Resizable split pane (drag the divider)',
+'- Multiple files open at once (sidebar)',
+'',
+'## Task list',
+'',
+'- [x] Open this file',
+'- [ ] Open your own .md file',
+'- [ ] Write something',
+'',
+'## Code example',
+'',
+'```js',
+'function greet(name) {',
+'  return `Hello, ${name}!`;',
+'}',
+'console.log(greet("world"));',
+'```',
+'',
+'> Tip: Drag the center divider left or right to resize the panes in Split mode.',
+].join('\n');
+
+files.push({name:'welcome.md', content:welcome, dirty:false});
+setActive(0);
+renderSidebar();
+
+})();
