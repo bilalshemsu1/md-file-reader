@@ -18,8 +18,10 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "Md Editor",
-		Width:  1024,
-		Height: 768,
+		Width:  1280,
+		Height: 800,
+		MinWidth: 800,
+		MinHeight: 600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

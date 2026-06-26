@@ -1,11 +1,18 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "md-editor",
-  "outputfilename": "md-editor",
+  "name": "MD Editor",
+  "outputfilename": "Md-Editor",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
+  "info": {
+    "productVersion": "1.0.0",
+    "companyName": "Bilal Shemsu",
+    "productName": "MD Editor",
+    "copyright": "Copyright © 2026 Bilal Shemsu",
+    "comments": "A fast, distraction-free Markdown editor"
+  },
   "author": {
     "name": "bilalshemsu9",
     "email": "biltinsa123@gmail.com"
