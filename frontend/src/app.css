@@ -50,7 +50,7 @@ body {
 }
 
 #bar .logo {
-  font-size: 18px;
+  color: var(--text);
   margin-right: 2px;
 }
 
