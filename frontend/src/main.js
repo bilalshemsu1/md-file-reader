@@ -672,6 +672,29 @@ function hlCode(code, lang) {
     tTimer = setTimeout(function(){ TST.classList.remove('on'); }, 2000);
   }
 
+  // ── Sidebar toggle ─────────────────────────────────────
+var sidebarOpen = localStorage.getItem('sidebarOpen') !== 'false';
+
+function applySidebar() {
+  var sb = document.getElementById('sb');
+  var btn = document.getElementById('btn-sidebar');
+  if(sidebarOpen) {
+    sb.classList.remove('collapsed');
+    btn.classList.add('active');
+  } else {
+    sb.classList.add('collapsed');
+    btn.classList.remove('active');
+  }
+  localStorage.setItem('sidebarOpen', sidebarOpen);
+}
+
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  applySidebar();
+}
+
+// init sidebar state
+applySidebar();
  
 // ── Drag & drop ────────────────────────────────────────
 document.addEventListener('dragenter', function(e){
@@ -722,14 +745,25 @@ document.addEventListener('drop', async function(e){
   document.getElementById('f-hr').addEventListener('click',     function(){ fmt('hr'); });
   document.getElementById('f-table').addEventListener('click',  function(){ fmt('table'); });
   document.getElementById('f-find').addEventListener('click',   function(){ toggleSearch(); });
-
+  document.getElementById('btn-sidebar').addEventListener('click', toggleSidebar);
+  
   // ── Global shortcuts ───────────────────────────────────
   document.addEventListener('keydown', function(e){
-    if((e.ctrlKey||e.metaKey) && e.key === 'n'){ e.preventDefault(); newFile(); }
-    if((e.ctrlKey||e.metaKey) && e.key === 'o'){ e.preventDefault(); openPicker(); }
+    if((e.ctrlKey||e.metaKey) && e.key === 'n'){ 
+        e.preventDefault(); 
+        newFile(); 
+    }
+    if((e.ctrlKey||e.metaKey) && e.key === 'o'){ 
+        e.preventDefault(); 
+        openPicker(); 
+    }
     if((e.ctrlKey||e.metaKey) && e.key === '\\' && active >= 0){
       e.preventDefault();
       setView(view === 'split' ? 'edit' : view === 'edit' ? 'preview' : 'split');
+    }
+    if((e.ctrlKey||e.metaKey) && e.shiftKey && e.key === 'B'){
+        e.preventDefault(); 
+        toggleSidebar();
     }
   });
 

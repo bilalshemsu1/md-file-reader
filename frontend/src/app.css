@@ -692,3 +692,38 @@ body {
 #file-inp {
   display: none;
 }
+
+/* ── Sidebar toggle ── */
+#sb {
+  transition: width .2s ease, opacity .2s ease;
+  overflow: hidden;
+}
+
+#sb.collapsed {
+  width: 0;
+  opacity: 0;
+  border-right: none;
+}
+
+#btn-sidebar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all .12s;
+  flex-shrink: 0;
+}
+
+#btn-sidebar:hover {
+  color: var(--text);
+  background: var(--bg3);
+}
+
+#btn-sidebar.active {
+  color: var(--accent);
+}
