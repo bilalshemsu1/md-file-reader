@@ -9,7 +9,8 @@ import (
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx         context.Context
+	startupFile string
 }
 
 // NewApp creates a new App application struct
@@ -20,6 +21,10 @@ func NewApp() *App {
 // startup is called when the app starts
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+}
+
+func (a *App) GetStartupFile() string {
+	return a.startupFile
 }
 
 // OpenFile opens a native file dialog and returns the selected file path
