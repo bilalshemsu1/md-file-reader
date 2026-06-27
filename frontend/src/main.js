@@ -798,8 +798,16 @@ document.addEventListener('drop', async function(e){
       setView(view === 'split' ? 'edit' : view === 'edit' ? 'preview' : 'split');
     }
     if((e.ctrlKey||e.metaKey) && e.shiftKey && e.key === 'B'){
-        e.preventDefault(); 
+        e.preventDefault();
         toggleSidebar();
+    }
+    if((e.ctrlKey||e.metaKey) && (e.key === '=' || e.key === '+')){
+        e.preventDefault();
+        changeZoom(0.1);
+    }
+    if((e.ctrlKey||e.metaKey) && e.key === '-'){
+        e.preventDefault();
+        changeZoom(-0.1);
     }
   });
 
