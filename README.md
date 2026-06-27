@@ -4,8 +4,6 @@
 
 A **fast**, distraction-free Markdown editor for Windows built with Wails. Features a clean interface, split-view editing, native file dialogs, and keyboard shortcuts. No server. No account. Your files never leave your device.
 
-![MD Editor](screenshots/md-reader.jpg)
-
 ## ✨ Features
 
 - **Live Preview** — Edit and preview your Markdown side-by-side in real-time
