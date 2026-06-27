@@ -693,6 +693,39 @@ function toggleSidebar() {
   applySidebar();
 }
 
+// --- zoom in/zoom out -------------------------------------
+let currentZoom = 1.0; // 1.0 == 100%
+
+function changeZoom(amount) {
+    // Update the zoom level variable
+    currentZoom += amount;
+
+    // Set limits to prevent infinite zooming (Min: 50%, Max: 250%)
+    if (currentZoom < 0.5) currentZoom = 0.5;
+    if (currentZoom > 2.5) currentZoom = 2.5;
+
+    applyZoom();
+}
+
+function resetZoom() {
+    currentZoom = 1.0;
+    applyZoom();
+}
+
+function applyZoom() {
+    const body = document.body;
+
+    // Check if the browser supports the standard 'zoom' property (Chrome, Safari, Edge)
+    if ('zoom' in body.style) {
+        body.style.zoom = currentZoom;
+    } else {
+        // Fallback for Firefox using CSS transform
+        body.style.transform = `scale(${currentZoom})`;
+        body.style.transformOrigin = 'top center';
+        body.style.width = `${100 / currentZoom}%`;
+    }
+}
+
 // init sidebar state
 applySidebar();
  
@@ -724,6 +757,9 @@ document.addEventListener('drop', async function(e){
   document.getElementById('btn-new').addEventListener('click', newFile);
   document.getElementById('sb-open').addEventListener('click', openPicker);
   document.getElementById('emp-open').addEventListener('click', openPicker);
+
+  document.getElementById('btn-zoom-in').addEventListener('click', function(){ changeZoom(0.1); });
+  document.getElementById('btn-zoom-out').addEventListener('click', function(){ changeZoom(-0.1); });
 
   document.getElementById('vt-edit').addEventListener('click',    function(){ setView('edit'); });
   document.getElementById('vt-split').addEventListener('click',   function(){ setView('split'); });
