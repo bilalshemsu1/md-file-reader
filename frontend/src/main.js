@@ -29,6 +29,7 @@ import { OpenFile, ReadFile, SaveFile, SaveFileAs, GetStartupFile } from '../wai
   var DIRTY = document.getElementById('dirty');
   var TST = document.getElementById('tst');
   var DOV = document.getElementById('dov');
+  var OUTLINE_RESIZE = document.getElementById('outline-resize');
 
   // ── Open files ─────────────────────────────────────────
   async function openPicker() {
@@ -43,7 +44,6 @@ import { OpenFile, ReadFile, SaveFile, SaveFileAs, GetStartupFile } from '../wai
       var content = await ReadFile(path);
 
       // extract just the filename from full path
-      // e.g. "C:/Users/Bilal/docs/notes.md" → "notes.md"
       var name = path.split(/[\\/]/).pop();
 
       // check if already open
@@ -142,6 +142,7 @@ import { OpenFile, ReadFile, SaveFile, SaveFileAs, GetStartupFile } from '../wai
     updateLineNums();
     updateStatus();
     renderPreview();
+    renderOutline();
     showEditorArea();
     ED.focus();
   }
@@ -230,6 +231,7 @@ function showEmpty() {
     updateLineNums();
     updateStatus();
     renderPreview();
+    renderOutline();
   });
 
   ED.addEventListener('keydown', function(e){
@@ -434,6 +436,30 @@ function showEmpty() {
     document.body.style.cursor = ''; document.body.style.userSelect = '';
   });
 
+  // ── Outline resize ───────────────────────────────────────
+  var oDragging = false, oY0 = 0, oH0 = 0;
+  OUTLINE_RESIZE.addEventListener('mousedown', function(e){
+    oDragging = true; oY0 = e.clientY; oH0 = FLIST.offsetHeight;
+    OUTLINE_RESIZE.classList.add('on');
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e){
+    if(!oDragging) return;
+    var sb = document.getElementById('sb');
+    var total = sb.offsetHeight - 80; // account for headers
+    var nh = Math.max(100, Math.min(total - 100, oH0 + (e.clientY - oY0)));
+    FLIST.style.flex = 'none'; FLIST.style.height = nh + 'px';
+  });
+
+  document.addEventListener('mouseup', function(){
+    if(!oDragging) return;
+    oDragging = false; OUTLINE_RESIZE.classList.remove('on');
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+  });
+
   // ── Search ─────────────────────────────────────────────
   function toggleSearch() {
     if(SRCH.classList.contains('on')){
@@ -488,10 +514,73 @@ function showEmpty() {
         ED.value = src;
         files[active].content = src;
         files[active].dirty = true;
-        updateTitle(); renderSidebar();
+        updateTitle(); 
+        renderSidebar();
+        renderOutline();
       });
     });
+
   }
+
+  function renderOutline() {
+    var outline = document.getElementById('outline');
+    if(!outline) return;
+
+    // get all lines from editor
+    var lines = ED.value.split('\n');
+    var headings = [];
+
+    // find lines that start with #
+    lines.forEach(function(line, i) {
+        var match = line.match(/^(#{1,6}) (.+)/);
+        if(match) {
+        headings.push({
+            level: match[1].length,  
+            text:  match[2].trim(),  
+            index: i                 
+        });
+        }
+    });
+
+    // clear current outline
+    outline.innerHTML = '';
+
+    // if no headings found
+    if(headings.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.cssText = 'padding:12px;font-size:12px;color:var(--text3);text-align:center';
+        empty.textContent = 'No headings found';
+        outline.appendChild(empty);
+        return;
+    }
+
+    // build outline items
+    headings.forEach(function(h, i) {
+        var div = document.createElement('div');
+        div.className = 'outline-item level-' + h.level;
+        div.textContent = h.text;
+        div.setAttribute('data-index', i);
+
+        // click → scroll preview to that heading
+        div.addEventListener('click', function() {
+        // find matching heading in preview
+        var pvHeadings = PV.querySelectorAll('h1,h2,h3,h4,h5,h6');
+        if(pvHeadings[i]) {
+            pvHeadings[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // also highlight active item
+        outline.querySelectorAll('.outline-item').forEach(function(el){
+            el.style.borderLeftColor = 'transparent';
+            el.style.color = '';
+        });
+        div.style.borderLeftColor = 'var(--accent)';
+        div.style.color = 'var(--accent)';
+        });
+
+        outline.appendChild(div);
+    });
+    }
 
   function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -744,9 +833,6 @@ document.addEventListener('dragover', function(e){ e.preventDefault(); });
 
 document.addEventListener('drop', async function(e){
   e.preventDefault(); dragN = 0; DOV.classList.remove('on');
-  // drag & drop now just opens the picker
-  // WebView2 doesn't expose full file paths from drop for security
-  // so we trigger the native dialog instead
   await openPicker();
 });
 
