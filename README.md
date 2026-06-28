@@ -125,6 +125,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Icons from [Heroicons](https://heroicons.com/)
 
 ## 📄 Changelog
+### v1.3.0 — Document Outline Panel
+- 📋 Document outline panel in sidebar — reads all headings live
+- 🖱️ Click any outline item to scroll preview to that heading
+- ↕️ Resizable divider between Files and Outline sections
+- 🔄 Outline updates live as you type
 
 ### v1.2.0 — Zoom Controls and UI Icon Improvements
 - Added zoom in/out buttons to the titlebar
