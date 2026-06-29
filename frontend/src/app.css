@@ -798,3 +798,64 @@ body {
 .outline-item.level-6 {
   padding-left: 80px;
 }
+
+/* ── Notification bar ── */
+#notif {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #2d1f00;
+  border-bottom: 1px solid rgba(227, 179, 65, 0.3);
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+#notif.on {
+  display: flex;
+}
+
+#notif-msg {
+  flex: 1;
+}
+
+.notif-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text2);
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: var(--ui);
+  transition: all 0.12s;
+}
+
+.notif-btn:hover {
+  background: var(--bg3);
+  color: var(--text);
+}
+
+.notif-save {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.notif-save:hover {
+  background: rgba(227, 179, 65, 0.1);
+}
+
+.notif-close {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+}
+
+.notif-close:hover {
+  color: var(--text);
+}
