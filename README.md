@@ -127,6 +127,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Icons from [Heroicons](https://heroicons.com/)
 
 ## 📄 Changelog
+### v1.5.0 — Windows Installer & Renamed to Markit
+- 📦 Windows installer — proper setup.exe with install wizard
+- 🔗 .md and .markdown file association — appears in right-click Open with
+- 🖥️ Start Menu and Desktop shortcuts created automatically
+- 🗑️ Clean uninstaller in Add/Remove Programs
+- ✏️ App renamed from MD Editor to Markit
+- 📱 Both portable .exe and installer available
+
 ### v1.4.0 — File Watching & Conflict Resolution
 - 👁️ Automatic file watching — detects when files are modified externally
 - ⚠️ Conflict notification bar — appears when external changes conflict with unsaved edits
