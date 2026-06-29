@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -11,11 +12,15 @@ import (
 type App struct {
 	ctx         context.Context
 	startupFile string
+	watcher     *fsnotify.Watcher
+	watchMap    map[string]bool
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	return &App{
+		watchMap: make(map[string]bool),
+	}
 }
 
 // startup is called when the app starts
