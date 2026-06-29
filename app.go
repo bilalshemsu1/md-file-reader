@@ -28,6 +28,88 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
+// shutdown is called when the app closes
+func (a *App) shutdown(ctx context.Context) {
+	// close watcher cleanly when app exits
+	if a.watcher != nil {
+		a.watcher.Close()
+		a.watcher = nil
+	}
+}
+
+// StartWatching starts watching a file for changes
+func (a *App) StartWatching(path string) error {
+	if a.watchMap[path] {
+		return nil
+	}
+
+	if a.watcher == nil {
+		w, err := fsnotify.NewWatcher()
+		if err != nil {
+			return err
+		}
+		a.watcher = w
+
+		// start background goroutine to listen for events
+		go func() {
+			for {
+				select {
+				case event, ok := <-a.watcher.Events:
+					if !ok {
+						return
+					}
+					// only care about write events
+					if event.Has(fsnotify.Write) {
+						runtime.EventsEmit(a.ctx, "fileChanged", event.Name)
+					}
+				case err, ok := <-a.watcher.Errors:
+					if !ok {
+						return
+					}
+					_ = err
+				}
+			}
+		}()
+	}
+
+	// add file to watcher
+	err := a.watcher.Add(path)
+	if err != nil {
+		return err
+	}
+
+	// mark as watched
+	a.watchMap[path] = true
+	return nil
+}
+
+// StopWatching stops watching a file for changes
+func (a *App) StopWatching(path string) error {
+	// not watching this file? skip
+	if !a.watchMap[path] {
+		return nil
+	}
+
+	// remove from watcher
+	if a.watcher != nil {
+		err := a.watcher.Remove(path)
+		if err != nil {
+			return err
+		}
+	}
+
+	// remove from watchMap
+	delete(a.watchMap, path)
+
+	// if no more files watched → close watcher entirely
+	if len(a.watchMap) == 0 && a.watcher != nil {
+		a.watcher.Close()
+		a.watcher = nil
+	}
+
+	return nil
+}
+
 func (a *App) GetStartupFile() string {
 	return a.startupFile
 }

@@ -21,3 +21,11 @@ export function SaveFile(arg1, arg2) {
 export function SaveFileAs(arg1) {
   return window['go']['main']['App']['SaveFileAs'](arg1);
 }
+
+export function StartWatching(arg1) {
+  return window['go']['main']['App']['StartWatching'](arg1);
+}
+
+export function StopWatching(arg1) {
+  return window['go']['main']['App']['StopWatching'](arg1);
+}
