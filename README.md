@@ -1,6 +1,6 @@
 # MD Editor
 
-![Version](https://img.shields.io/badge/version-v1.2.0-blue) ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-v1.4.0-blue) ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
 
 A **fast**, distraction-free Markdown editor for Windows built with Wails. Features a clean interface, split-view editing, native file dialogs, and keyboard shortcuts. No server. No account. Your files never leave your device.
 
@@ -8,6 +8,8 @@ A **fast**, distraction-free Markdown editor for Windows built with Wails. Featu
 
 - **Live Preview** — Edit and preview your Markdown side-by-side in real-time
 - **Split View** — Choose between Edit-only, Split, or Preview-only modes
+- **Document Outline** — Live outline panel showing all headings with click-to-navigate
+- **File Watching** — Automatic detection of external file changes with conflict resolution
 - **Zoom Controls** — Adjust the editor zoom level (50% - 250%) with buttons or keyboard shortcuts
 - **Collapsible Sidebar** — Manage multiple files with a collapsible file sidebar
 - **Native File Dialogs** — Open and save files directly to disk using Windows native dialogs
@@ -125,6 +127,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Icons from [Heroicons](https://heroicons.com/)
 
 ## 📄 Changelog
+### v1.4.0 — File Watching & Conflict Resolution
+- 👁️ Automatic file watching — detects when files are modified externally
+- ⚠️ Conflict notification bar — appears when external changes conflict with unsaved edits
+- 🔄 Reload option — reload file from disk, discarding local changes
+- 💾 Save option — overwrite external changes with your version
+- 🛡️ Keep option — ignore external changes and continue editing
+- 🎯 Smart conflict handling — only shows notification when you have unsaved changes
+- 📦 fsnotify integration — efficient file system monitoring via Go backend
+
 ### v1.3.0 — Document Outline Panel
 - 📋 Document outline panel in sidebar — reads all headings live
 - 🖱️ Click any outline item to scroll preview to that heading
