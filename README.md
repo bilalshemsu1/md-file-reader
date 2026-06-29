@@ -1,4 +1,4 @@
-# MD Editor
+# Markit
 
 ![Version](https://img.shields.io/badge/version-v1.4.0-blue) ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -51,7 +51,7 @@ wails build
 
 ### Quick Start
 
-1. Launch MD Editor
+1. Launch Markit
 2. Click **Open** or drag `.md` files onto the window
 3. Edit using the toolbar or keyboard shortcuts
 4. Switch between Edit / Split / Preview modes (top-right)
@@ -156,7 +156,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Improved overall UI polish
 
 ### v1.0.2 — File Association and Icon Update
-- Open .md files directly — right-click any .md file and open with MD Editor
+- Open .md files directly — right-click any .md file and open with Markit
 - Fixed syntax highlighter breaking .env and config file rendering
 - Updated welcome screen
 - Updated app icon

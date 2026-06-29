@@ -22,7 +22,7 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:     "Md Editor",
+		Title:     "Markit",
 		Width:     1280,
 		Height:    800,
 		MinWidth:  800,

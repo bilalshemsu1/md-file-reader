@@ -988,7 +988,7 @@ FTB.style.opacity = '.35';
 FTB.style.pointerEvents = 'none';
 
 var welcome = [
-  '# Welcome to MD Editor',
+  '# Welcome to Markit',
   '',
   'A **fast**, distraction-free Markdown editor for Windows.',
   'No server. No account. Your files never leave your device.',
