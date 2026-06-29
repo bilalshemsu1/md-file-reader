@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -14,7 +15,7 @@ type App struct {
 	startupFile string
 	watcher     *fsnotify.Watcher
 	watchMap    map[string]bool
-}
+	}
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -49,7 +50,9 @@ func (a *App) StartWatching(path string) error {
 			return err
 		}
 		a.watcher = w
-
+		
+		debounceMap := make(map[string]*time.Timer)
+		
 		// start background goroutine to listen for events
 		go func() {
 			for {
@@ -58,9 +61,17 @@ func (a *App) StartWatching(path string) error {
 					if !ok {
 						return
 					}
-					// only care about write events
 					if event.Has(fsnotify.Write) {
-						runtime.EventsEmit(a.ctx, "fileChanged", event.Name)
+						// debounce — wait 300ms after last event
+						// reset timer if another event fires
+						if timer, exists := debounceMap[event.Name]; exists {
+							timer.Stop()
+						}
+						path := event.Name
+						debounceMap[path] = time.AfterFunc(300*time.Millisecond, func() {
+							runtime.EventsEmit(a.ctx, "fileChanged", path)
+							delete(debounceMap, path)
+						})
 					}
 				case err, ok := <-a.watcher.Errors:
 					if !ok {
