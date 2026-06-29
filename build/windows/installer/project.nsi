@@ -87,6 +87,15 @@ Section
     !insertmacro wails.setShellContext
 
     !insertmacro wails.webview2runtime
+     ; Register .md file association
+    WriteRegStr HKCU "Software\Classes\.md" "" "Markit.md"
+    WriteRegStr HKCU "Software\Classes\.markdown" "" "Markit.md"
+    WriteRegStr HKCU "Software\Classes\Markit.md" "" "Markdown File"
+    WriteRegStr HKCU "Software\Classes\Markit.md\DefaultIcon" "" "$INSTDIR\${PRODUCT_EXECUTABLE},0"
+    WriteRegStr HKCU "Software\Classes\Markit.md\shell\open\command" "" '"$INSTDIR\${PRODUCT_EXECUTABLE}" "%1"'
+    
+    ; Notify Windows of the change
+    System::Call 'shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
 
     SetOutPath $INSTDIR
 
@@ -115,4 +124,9 @@ Section "uninstall"
     !insertmacro wails.unassociateCustomProtocols
 
     !insertmacro wails.deleteUninstaller
+
+    ; Remove file association
+    DeleteRegKey HKCU "Software\Classes\.md"
+    DeleteRegKey HKCU "Software\Classes\.markdown"
+    DeleteRegKey HKCU "Software\Classes\Markit.md"
 SectionEnd
