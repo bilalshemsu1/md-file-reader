@@ -676,7 +676,6 @@ function showEmpty() {
     s = s.replace(/~~(.+?)~~/g,'<del>$1</del>');
     s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1">');
     s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-    s = s.replace(/\x00IC(\d+)\x00/g, function(_,i){ return '<code>'+i+'</code>'; });
     return s;
   }
 
