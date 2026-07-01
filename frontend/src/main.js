@@ -809,7 +809,7 @@ function hlCode(code, lang) {
 
   async function checkForUpdates() {
     try {
-      var currentVersion = '1.0.0';
+      var currentVersion = '1.6.0';
       console.log('Checking for updates. Current version:', currentVersion);
       var result = await CheckForUpdates(currentVersion);
       console.log('Update check result:', result);
