@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -15,7 +18,22 @@ type App struct {
 	startupFile string
 	watcher     *fsnotify.Watcher
 	watchMap    map[string]bool
-	}
+}
+
+// GitHubRelease represents the GitHub API response for a release
+type GitHubRelease struct {
+	TagName string `json:"tag_name"`
+	HtmlUrl string `json:"html_url"`
+	Body    string `json:"body"`
+}
+
+// UpdateCheckResult represents the result of an update check
+type UpdateCheckResult struct {
+	HasUpdate   bool   `json:"hasUpdate"`
+	Version     string `json:"version"`
+	Url         string `json:"url"`
+	Description string `json:"description"`
+}
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -50,9 +68,9 @@ func (a *App) StartWatching(path string) error {
 			return err
 		}
 		a.watcher = w
-		
+
 		debounceMap := make(map[string]*time.Timer)
-		
+
 		// start background goroutine to listen for events
 		go func() {
 			for {
@@ -176,4 +194,49 @@ func (a *App) SaveFileAs(content string) (string, error) {
 		return "", err
 	}
 	return path, nil
+}
+
+// CheckForUpdates checks the GitHub API for the latest release
+func (a *App) CheckForUpdates(currentVersion string) UpdateCheckResult {
+	const repoURL = "https://api.github.com/repositories/1281269179/releases/latest"
+
+	println("Checking for updates. Current version:", currentVersion)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(repoURL)
+	if err != nil {
+		println("Error fetching GitHub API:", err.Error())
+		return UpdateCheckResult{HasUpdate: false}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		println("GitHub API returned status:", resp.StatusCode)
+		return UpdateCheckResult{HasUpdate: false}
+	}
+
+	var release GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		println("Error decoding GitHub response:", err.Error())
+		return UpdateCheckResult{HasUpdate: false}
+	}
+
+	println("Latest version from GitHub:", release.TagName)
+
+	// Compare versions (strip 'v' prefix if present)
+	current := strings.TrimPrefix(currentVersion, "v")
+	latest := strings.TrimPrefix(release.TagName, "v")
+
+	if current != latest {
+		println("Update available! Current:", current, "Latest:", latest)
+		return UpdateCheckResult{
+			HasUpdate:   true,
+			Version:     release.TagName,
+			Url:         release.HtmlUrl,
+			Description: release.Body,
+		}
+	}
+
+	println("No update available. Current:", current, "Latest:", latest)
+	return UpdateCheckResult{HasUpdate: false}
 }

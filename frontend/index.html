@@ -187,6 +187,21 @@
       <button class="ib" id="srch-close">✕</button>
     </div>
 
+    <!-- Update notification bar -->
+    <div id="update-bar">
+      <div class="update-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--green)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span id="update-msg">A new version is available!</span>
+        <button class="notif-close" id="update-close">✕</button>
+      </div>
+      <div class="update-body">
+        <p id="update-desc"></p>
+        <button class="notif-btn notif-save" id="update-download">Download</button>
+      </div>
+    </div>
+
     <!-- File changed notification bar -->
     <div id="notif">
     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--orange)">

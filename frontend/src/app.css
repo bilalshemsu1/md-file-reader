@@ -859,3 +859,70 @@ body {
 .notif-close:hover {
   color: var(--text);
 }
+
+/* ── Update notification bar ── */
+#update-bar {
+  display: none;
+  position: fixed;
+  bottom: 34px;
+  right: 20px;
+  width: 320px;
+  background: linear-gradient(135deg, var(--bg3) 0%, var(--bg2) 100%);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+#update-bar.on {
+  display: block;
+}
+
+.update-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent2);
+}
+
+#update-msg {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.update-body {
+  padding: 12px 16px;
+}
+
+#update-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.update-body .notif-btn {
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
