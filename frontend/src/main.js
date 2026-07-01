@@ -39,6 +39,7 @@ import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js';
   var UPDATE_MSG = document.getElementById('update-msg');
   var UPDATE_DESC = document.getElementById('update-desc');
   var updateUrl = '';
+  var SB_VERSION = document.getElementById('sb-version');
 
   // ── Open files ─────────────────────────────────────────
   async function openPicker() {
@@ -1035,6 +1036,9 @@ document.addEventListener('drop', async function(e){
 showEmpty();
 FTB.style.opacity = '.35';
 FTB.style.pointerEvents = 'none';
+
+// Set version in status bar
+SB_VERSION.textContent = 'v1.6.0';
 
 var welcome = [
   '# Welcome to Markit',

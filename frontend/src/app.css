@@ -621,6 +621,11 @@ body {
   flex-shrink: 0;
 }
 
+#sb-version {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 #stb .sr {
   margin-left: auto;
   display: flex;
