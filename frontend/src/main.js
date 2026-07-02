@@ -1048,12 +1048,7 @@ document.addEventListener('drop', async function(e){
       return; 
     }
 
-    // Ctrl+C
-    if((e.ctrlKey||e.metaKey) && e.key === 'c'){
-      e.preventDefault();
-      copySelection();
-      return;
-    }
+
   });
 
  // ── Init ───────────────────────────────────────────────
