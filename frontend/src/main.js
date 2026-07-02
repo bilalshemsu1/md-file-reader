@@ -822,7 +822,7 @@ function hlCode(code, lang) {
 
   async function checkForUpdates() {
     try {
-      var currentVersion = '1.6.0';
+      var currentVersion = '1.7.0';
       console.log('Checking for updates. Current version:', currentVersion);
       var result = await CheckForUpdates(currentVersion);
       console.log('Update check result:', result);
@@ -1062,7 +1062,7 @@ FTB.style.opacity = '.35';
 FTB.style.pointerEvents = 'none';
 
 // Set version in status bar
-SB_VERSION.textContent = 'v1.6.0';
+SB_VERSION.textContent = 'v1.7.0';
 
 var welcome = [
   '# Welcome to Markit',
