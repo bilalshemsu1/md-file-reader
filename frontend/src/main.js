@@ -488,6 +488,7 @@ function showEmpty() {
       SRCH.classList.add('on'); SI.focus();
     }
   }
+  
   SI.addEventListener('input', runSearch);
   SI.addEventListener('keydown', function(e){
     if(e.key === 'Escape'){ toggleSearch(); return; }
@@ -508,7 +509,6 @@ function showEmpty() {
     while(true){ var idx = text.indexOf(ql, i); if(idx<0) break; srchMatches.push(idx); i = idx+1; }
     srchIdx = 0;
     SC.textContent = srchMatches.length ? '1 / ' + srchMatches.length : 'No results';
-    if(srchMatches.length) jumpMatch(0);
   }
   function jumpMatch(i) {
     var q = SI.value, pos = srchMatches[i];
@@ -534,13 +534,25 @@ function showEmpty() {
         ED.value = src;
         files[active].content = src;
         files[active].dirty = true;
-        updateTitle(); 
+        updateTitle();
         renderSidebar();
         renderOutline();
       });
     });
-
   }
+
+  // ── Preview copy shortcut ────────────────────────────────
+  document.addEventListener('copy', function(e){
+    var selection = window.getSelection();
+    if(selection.rangeCount > 0 && PV.contains(selection.anchorNode)){
+      var selectedText = selection.toString();
+      if(selectedText){
+        e.clipboardData.setData('text/plain', selectedText);
+        e.preventDefault();
+        toast('Copied to clipboard');
+      }
+    }
+  });
 
   function renderOutline() {
     var outline = document.getElementById('outline');
@@ -1029,6 +1041,18 @@ document.addEventListener('drop', async function(e){
     if((e.ctrlKey||e.metaKey) && e.key === '-'){
         e.preventDefault();
         changeZoom(-0.1);
+    }
+    if((e.ctrlKey||e.metaKey) && e.key === 'f'){ 
+      e.preventDefault(); 
+      toggleSearch(); 
+      return; 
+    }
+
+    // Ctrl+C
+    if((e.ctrlKey||e.metaKey) && e.key === 'c'){
+      e.preventDefault();
+      copySelection();
+      return;
     }
   });
 
